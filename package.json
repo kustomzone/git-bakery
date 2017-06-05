@@ -1,0 +1,8 @@
+{
+  "name": "git-bakery",
+  "version": "v0.1.0",
+  "main": "main.js",
+  "dependencies": {
+    "primer-css": "^6.0.0"
+  }
+}
