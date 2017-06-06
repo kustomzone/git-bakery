@@ -1,32 +1,60 @@
 const {app, BrowserWindow} = require('electron')
 const path = require('path')
 const url = require('url')
+"use strict";
 
-// Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is garbage collected.
 let win
 
 function createWindow() {
-    // Create the browser window.
-    win = new BrowserWindow({width: 800, height: 600})
 
-    // and load the index.html of the app.
-    win.loadURL(url.format({
-        pathname: path.join(__dirname, 'index.html'),
-        protocol: 'file:',
-        slashes: true
-    }))
+    // Your GitHub Applications Credentials
+    var options = {
+        client_id: 'c3558e1509b0378b5ff8',
+        client_secret: 'a491f6d2c433428c712287048376ac15d66bbefe',
+        scopes: ["user:email"]
+    };
 
-    // Open the DevTools.
-    win.webContents.openDevTools()
+// Build the OAuth consent page URL
+    var authWindow = new BrowserWindow({width: 800, height: 600, show: false, 'node-integration': false});
+    var githubUrl = 'https://github.com/login/oauth/authorize?';
+    var authUrl = githubUrl + 'client_id=' + options.client_id + '&scope=' + options.scopes;
+    authWindow.loadURL(authUrl);
+    authWindow.show();
 
-    // Emitted when the window is closed.
-    win.on('closed', () => {
-        // Dereference the window object, usually you would store windows
-        // in an array if your app supports multi windows, this is the time
-        // when you should delete the corresponding element.
-        win = null
-    })
+    function handleCallback(url) {
+        var raw_code = /code=([^&]*)/.exec(url) || null;
+        var code = (raw_code && raw_code.length > 1) ? raw_code[1] : null;
+        var error = /\?error=(.+)$/.exec(url);
+
+        if (code || error) {
+            // Close the browser if code found or error
+            authWindow.destroy();
+        }
+
+        // If there is a code, proceed to get token from github
+        if (code) {
+            // self.requestGithubToken(options, code);
+        } else if (error) {
+            alert('Oops! Something went wrong and we couldn\'t' +
+                'log you in using Github. Please try again.');
+        }
+    }
+
+// Handle the response from GitHub - See Update from 4/12/2015
+
+    authWindow.webContents.on('will-navigate', function (event, url) {
+        handleCallback(url);
+    });
+
+    authWindow.webContents.on('did-get-redirect-request', function (event, oldUrl, newUrl) {
+        handleCallback(newUrl);
+    });
+
+// Reset the authWindow on close
+    authWindow.on('close', function () {
+        authWindow = null;
+    }, false);
+
 }
 
 // This method will be called when Electron has finished
@@ -51,5 +79,3 @@ app.on('activate', () => {
     }
 })
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
