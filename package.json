@@ -3,6 +3,7 @@
   "version": "v0.1.0",
   "main": "main.js",
   "dependencies": {
+    "electron-json-storage": "^3.0.5",
     "primer-css": "^6.0.0"
   }
 }

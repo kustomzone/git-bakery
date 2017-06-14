@@ -1,60 +1,49 @@
 const {app, BrowserWindow} = require('electron')
 const path = require('path')
 const url = require('url')
-"use strict";
+const fs= require('fs')
+const storage = require('electron-json-storage');
 
 let win
 
-function createWindow() {
+function getParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+    results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
 
-    // Your GitHub Applications Credentials
-    var options = {
-        client_id: 'c3558e1509b0378b5ff8',
-        client_secret: 'a491f6d2c433428c712287048376ac15d66bbefe',
-        scopes: ["user:email"]
-    };
+function createWindow () {
+  // Create the browser window.
+  win = new BrowserWindow({width: 800, height: 600});
 
-// Build the OAuth consent page URL
-    var authWindow = new BrowserWindow({width: 800, height: 600, show: false, 'node-integration': false});
-    var githubUrl = 'https://github.com/login/oauth/authorize?';
-    var authUrl = githubUrl + 'client_id=' + options.client_id + '&scope=' + options.scopes;
-    authWindow.loadURL(authUrl);
-    authWindow.show();
+  win.loadURL('https://github.com/login/oauth/authorize?scope=user:email&client_id=c3558e1509b0378b5ff8');
+  win.webContents.openDevTools()
 
-    function handleCallback(url) {
-        var raw_code = /code=([^&]*)/.exec(url) || null;
-        var code = (raw_code && raw_code.length > 1) ? raw_code[1] : null;
-        var error = /\?error=(.+)$/.exec(url);
+  win.webContents.on('will-navigate',function(event,newUrl){
 
-        if (code || error) {
-            // Close the browser if code found or error
-            authWindow.destroy();
-        }
+    console.log(newUrl);
+    console.log(event);
+});
 
-        // If there is a code, proceed to get token from github
-        if (code) {
-            // self.requestGithubToken(options, code);
-        } else if (error) {
-            alert('Oops! Something went wrong and we couldn\'t' +
-                'log you in using Github. Please try again.');
-        }
-    }
+  win.webContents.on('did-get-redirect-request', function (event, oldUrl, newUrl) {
+    let gitCode = getParameterByName('code',newUrl);
+    let name = '_token.json';
+    let projectPath ='/home/nico/Projects/git-bakery';
 
-// Handle the response from GitHub - See Update from 4/12/2015
+    fs.writeFileSync(projectPath+'/token.json',JSON.stringify({
+        token: gitCode
+    }))
 
-    authWindow.webContents.on('will-navigate', function (event, url) {
-        handleCallback(url);
-    });
+});
 
-    authWindow.webContents.on('did-get-redirect-request', function (event, oldUrl, newUrl) {
-        handleCallback(newUrl);
-    });
 
-// Reset the authWindow on close
-    authWindow.on('close', function () {
-        authWindow = null;
-    }, false);
-
+  win.on('closed', () => {
+    win = null
+})
 }
 
 // This method will be called when Electron has finished
@@ -64,18 +53,17 @@ app.on('ready', createWindow)
 
 // Quit when all windows are closed.
 app.on('window-all-closed', () => {
-    // On macOS it is common for applications and their menu bar
-    // to stay active until the user quits explicitly with Cmd + Q
-    if (process.platform !== 'darwin') {
-        app.quit()
-    }
+  // On macOS it is common for applications and their menu bar
+  // to stay active until the user quits explicitly with Cmd + Q
+  if (process.platform !== 'darwin') {
+    app.quit()
+}
 })
 
 app.on('activate', () => {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (win === null) {
-        createWindow()
-    }
+  // On macOS it's common to re-create a window in the app when the
+  // dock icon is clicked and there are no other windows open.
+  if (win === null) {
+    createWindow()
+}
 })
-
