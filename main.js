@@ -3,6 +3,7 @@ const path = require('path')
 const url = require('url')
 const fs= require('fs')
 const storage = require('electron-json-storage');
+const Ajax = require('./Ajax.js');
 
 let win
 
@@ -37,6 +38,8 @@ function createWindow () {
     fs.writeFileSync(projectPath+'/token.json',JSON.stringify({
         token: gitCode
     }))
+
+    console.log('Ajax');
 
 });
 
